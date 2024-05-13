@@ -14,7 +14,6 @@ export default ({
 } = {}) => {
   const { event_prefix, call_prefix, resolve_prefix, reject_prefix } = protocol
   const hub = Hub()
-  const { httpServer } = koa
   const wsServer = new WebSocketServer({ noServer: true })
   const registry = new Map()
   const call_promise = new Map()
