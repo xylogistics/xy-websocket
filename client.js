@@ -16,7 +16,8 @@ export default ({
     call_prefix: 'c.',
     resolve_prefix: 'resolve.',
     reject_prefix: 'reject.'
-  }
+  },
+  wsOptions = {}
 } = {}) => {
   const { event_prefix, call_prefix, resolve_prefix, reject_prefix } = protocol
   const hub = Hub()
@@ -73,7 +74,7 @@ export default ({
       reject = rej
     })
     delay(() => {
-      const newSocket = new Websocket(url)
+      const newSocket = new Websocket(url, wsOptions)
       const onerror = () => {
         if (!reject) return
         const cb = reject
