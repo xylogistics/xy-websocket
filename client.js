@@ -1,5 +1,5 @@
 import short from 'short-uuid'
-import Websocket from 'ws'
+import Websocket from 'isomorphic-ws'
 import { backOff } from 'exponential-backoff'
 import { Hub } from './hub.js'
 import { NotConnected, CallWaitTimeout } from './exceptions.js'
