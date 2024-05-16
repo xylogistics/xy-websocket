@@ -1,12 +1,10 @@
 import short from 'short-uuid'
-import Websocket from 'isomorphic-ws'
+import Websocket from 'ws'
 import { backOff } from 'exponential-backoff'
 import { Hub } from './hub.js'
 import { NotConnected, CallWaitTimeout } from './exceptions.js'
 
 const delay = (fn, ms = 0) => setTimeout(fn, ms)
-
-
 
 export default ({
   url,

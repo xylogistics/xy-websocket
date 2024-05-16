@@ -17,7 +17,7 @@
   "license": "MIT",
   "dependencies": {
     "exponential-backoff": "^3.1.1",
-    "isomorphic-ws": "^5.0.0",
+    "reconnecting-websocket": "^4.4.0",
     "short-uuid": "^5.2.0",
     "ws": "^8.17.0"
   }
