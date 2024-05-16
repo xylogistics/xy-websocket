@@ -1,5 +1,5 @@
 import short from 'short-uuid'
-import ws, { WebSocketServer } from 'isomorphic-ws'
+import ws, { WebSocketServer } from 'ws'
 import { Hub } from './hub.js'
 
 export default ({
