@@ -18,9 +18,10 @@ export default ({
   const registry = new Map()
   const call_promise = new Map()
 
-  wsServer.on('connection', socket => {
+  wsServer.on('connection', (socket, request) => {
+    socket.request = request
     socket.is_alive = true
-    hub.emit('connected', socket)
+    hub.emit('connected', socket, request)
     socket.on('pong', () => (socket.is_alive = true))
     socket.on('message', async data => {
       const { e: event, p: payload, id } = JSON.parse(data)
