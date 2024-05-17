@@ -59,7 +59,7 @@ export default ({
         }
       }
     })
-    socket.on('close', () => hub.emit('disconnected', socket))
+    socket.on('close', () => hub.emit('disconnected', socket, request))
     socket.sendEvent = (e, p) => {
       if (!api.is_connected(socket)) throw new NotConnected()
       socket.send(JSON.stringify({ e: `${event_prefix}${e}`, p }))
