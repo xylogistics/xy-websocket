@@ -1,6 +1,6 @@
 import { Hub } from './hub.js'
 
-const delay = (ms = 0) => new Promise(resolve => setTimeout(resolve, ms))
+const delay = fn => setTimeout(fn, 0)
 
 const ws = {
   OPEN: 1,
@@ -14,7 +14,7 @@ const createServer = () => {
   const sockets = []
   const serverRegistry = new Map()
 
-  const createClient = () => {
+  const createClient = request => {
     const socketHub = Hub()
     const clientHub = Hub()
     const clientRegistry = new Map()
@@ -30,7 +30,8 @@ const createServer = () => {
           throw new Error(`'${c}' not found`)
         return await clientRegistry.get(c)(p ?? {}, socket)
       },
-      readyState: ws.OPEN
+      readyState: ws.OPEN,
+      request
     }
 
     const client = {
@@ -54,12 +55,10 @@ const createServer = () => {
       }
     }
 
-    const aside = async () => {
-      await delay()
-      serverHub.emit('connection', socket, {})
+    delay(() => {
+      serverHub.emit('connection', socket, request)
       clientHub.emit('connected', client)
-    }
-    aside()
+    })
 
     return { socket, client }
   }
@@ -83,8 +82,8 @@ const createServer = () => {
         socket.close()
       serverHub.emit('close')
     },
-    createClient: () => {
-      const { client, socket } = createClient()
+    createClient: request => {
+      const { client, socket } = createClient(request)
       sockets.push(socket)
       return client
     },
