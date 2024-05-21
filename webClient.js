@@ -87,7 +87,8 @@ export default ({
       return result
     },
     register: (name, fn) => registry.set(name, fn),
-    unregister: name => registry.delete(name)
+    unregister: name => registry.delete(name),
+    close: () => socket.close()
   }
 
   return api

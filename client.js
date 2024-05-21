@@ -20,6 +20,7 @@ export default ({
   const { event_prefix, call_prefix, resolve_prefix, reject_prefix } = protocol
   const hub = Hub()
   let socket = null
+  let is_closed = false
   const registry = new Map()
   const call_promise = new Map()
 
@@ -97,6 +98,7 @@ export default ({
     return result
   }
   const attempt = async () => {
+    if (is_closed) return
     socket = await backOff(() => connect(), {
       delayFirstAttempt: true,
       numOfAttempts: Infinity,
@@ -132,7 +134,14 @@ export default ({
       return result
     },
     register: (name, fn) => registry.set(name, fn),
-    unregister: name => registry.delete(name)
+    unregister: name => registry.delete(name),
+    close: () => {
+      is_closed = true
+      if (socket) {
+        socket.close()
+        socket = null
+      }
+    }
   }
 
   return api
