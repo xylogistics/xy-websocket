@@ -9,7 +9,7 @@ const ws = {
   CLOSED: 4
 }
 
-const createServer = () => {
+export default () => {
   const serverHub = Hub()
   const sockets = []
   const serverRegistry = new Map()
@@ -95,5 +95,3 @@ const createServer = () => {
 
   return api
 }
-
-export default createServer
