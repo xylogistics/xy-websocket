@@ -3,6 +3,7 @@ import ReconnectingWebSocket from 'reconnecting-websocket'
 import { Hub } from './hub.js'
 import { NotConnected, CallWaitTimeout } from './exceptions.js'
 
+
 export default ({
   url,
   call_timeout = 2000,
@@ -15,6 +16,14 @@ export default ({
   protocols = [],
   wsOptions = {}
 }) => {
+  if (wsOptions.beforeConnect) {
+    class XYWebSocket extends WebSocket {
+      constructor(...args) {
+        super(...wsOptions.beforeConnect(...args))
+      }
+    }
+    wsOptions.WebSocket = XYWebSocket
+  }
   const { event_prefix, call_prefix, resolve_prefix, reject_prefix } = protocol
   const hub = Hub()
   const socket = new ReconnectingWebSocket(url, protocols, wsOptions)
