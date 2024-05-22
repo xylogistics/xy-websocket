@@ -45,6 +45,7 @@ export default ({
           return socket.send(JSON.stringify({ e: `${resolve_prefix}${fn_name}`, id, p: result }))
         }
         catch (e) {
+          if (e.ok !== false) console.error(e)
           const p = e.ok === false ? e : { ok: false, status: 500, message: `${e.name}: ${e.message}` }
           return socket.send(JSON.stringify({ e: `${reject_prefix}${fn_name}`, id, p }))
         }
