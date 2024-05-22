@@ -3,6 +3,7 @@ import ReconnectingWebSocket from 'reconnecting-websocket'
 import { Hub } from './hub.js'
 import { NotConnected, CallWaitTimeout } from './exceptions.js'
 
+
 export default ({
   url,
   call_timeout = 2000,
@@ -15,6 +16,14 @@ export default ({
   protocols = [],
   wsOptions = {}
 }) => {
+  if (wsOptions.beforeConnect) {
+    class XYWebSocket extends WebSocket {
+      constructor(...args) {
+        super(...wsOptions.beforeConnect(...args))
+      }
+    }
+    wsOptions.WebSocket = XYWebSocket
+  }
   const { event_prefix, call_prefix, resolve_prefix, reject_prefix } = protocol
   const hub = Hub()
   const socket = new ReconnectingWebSocket(url, protocols, wsOptions)
@@ -28,21 +37,22 @@ export default ({
   socket.addEventListener('message', async e => {
     const { e: event, p: payload, id } = JSON.parse(e.data)
     if (event.startsWith(event_prefix))
-      return hub.emit(event.slice(event_prefix.length), payload ?? {})
+      return hub.emit(event.slice(event_prefix.length), payload)
     if (event.startsWith(call_prefix)) {
       const fn_name = event.slice(call_prefix.length)
       if (!registry.has(fn_name))
         return socket.send(JSON.stringify({ e: `${reject_prefix}${fn_name}`, id, p: {
+          ok: false,
+          status: 404,
           message: `'${fn_name}' not found`
         } }))
       try {
-        const result = await registry.get(fn_name)(payload ?? {})
+        const result = await registry.get(fn_name)(payload)
         return socket.send(JSON.stringify({ e: `${resolve_prefix}${fn_name}`, id, p: result }))
       }
       catch (e) {
-        return socket.send(JSON.stringify({ e: `${reject_prefix}${fn_name}`, id, p: {
-          message: `${e.name}: ${e.message}`
-        } }))
+        const p = e.ok === false ? e : { ok: false, status: 500, message: `${e.name}: ${e.message}` }
+        return socket.send(JSON.stringify({ e: `${reject_prefix}${fn_name}`, id, p }))
       }
     }
     if (event.startsWith(resolve_prefix)) {
@@ -56,7 +66,7 @@ export default ({
       if (call_promise.has(id)) {
         const { reject } = call_promise.get(id)
         call_promise.delete(id)
-        reject(new Error(payload.message))
+        reject(payload)
       }
     }
   })

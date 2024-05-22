@@ -2,6 +2,8 @@ import short from 'short-uuid'
 import ws, { WebSocketServer } from 'ws'
 import { Hub } from './hub.js'
 
+// TODO: create an general websocketexception class that is captured when thrown and re-created on the other side
+
 export default ({
   httpServer,
   call_timeout = 2000,
@@ -14,6 +16,7 @@ export default ({
 } = {}) => {
   const { event_prefix, call_prefix, resolve_prefix, reject_prefix } = protocol
   const hub = Hub()
+  let unhandled = null
   const wsServer = new WebSocketServer({ noServer: true })
   const registry = new Map()
   const call_promise = new Map()
@@ -26,22 +29,33 @@ export default ({
     socket.on('message', async data => {
       const { e: event, p: payload, id } = JSON.parse(data)
       if (event.startsWith(event_prefix))
-        return hub.emit(event.slice(event_prefix.length), payload ?? {}, socket)
+        return hub.emit(event.slice(event_prefix.length), payload, socket)
       if (event.startsWith(call_prefix)) {
         const fn_name = event.slice(call_prefix.length)
-        if (!registry.has(fn_name))
+        if (!registry.has(fn_name)) {
+          if (unhandled) {
+            try {
+              const result = await unhandled(fn_name, payload, socket)
+              return socket.send(JSON.stringify({ e: `${resolve_prefix}${fn_name}`, id, p: result }))
+            }
+            catch (e) {
+              const p = e.ok === false ? e : { ok: false, status: 500, message: `${e.name}: ${e.message}` }
+              return socket.send(JSON.stringify({ e: `${reject_prefix}${fn_name}`, id, p }))
+            }
+          }
           return socket.send(JSON.stringify({ e: `${reject_prefix}${fn_name}`, id, p: {
+            ok: false,
+            status: 404,
             message: `'${fn_name}' not found`
           } }))
+        }
         try {
-          const result = await registry.get(fn_name)(payload ?? {}, socket)
-          return socket.send(JSON.stringify({ e: `${resolve_prefix}${fn_name}`, id, p: result ?? {} }))
+          const result = await registry.get(fn_name)(payload, socket)
+          return socket.send(JSON.stringify({ e: `${resolve_prefix}${fn_name}`, id, p: result }))
         }
         catch (e) {
-          console.error('Error in websocket call', e, event, payload)
-          return socket.send(JSON.stringify({ e: `${reject_prefix}${fn_name}`, id, p: {
-            message: `${e.name}: ${e.message}`
-          } }))
+          const p = e.ok === false ? e : { ok: false, status: 500, message: `${e.name}: ${e.message}` }
+          return socket.send(JSON.stringify({ e: `${reject_prefix}${fn_name}`, id, p }))
         }
       }
       if (event.startsWith(resolve_prefix)) {
@@ -55,7 +69,7 @@ export default ({
         if (call_promise.has(id)) {
           const { reject } = call_promise.get(id)
           call_promise.delete(id)
-          reject(new Error(payload.message))
+          reject(payload)
         }
       }
     })
@@ -105,6 +119,7 @@ export default ({
     wsServer,
     on: hub.on,
     off: hub.off,
+    unhandled: hub.unhandled,
     broadcast: (e, p) => {
       for (const socket of wsServer.clients) {
         if (!api.is_connected(socket)) continue
@@ -114,6 +129,7 @@ export default ({
     sockets: () => wsServer.clients,
     is_connected: socket => socket != null && socket.readyState === ws.OPEN,
     register: (name, fn) => registry.set(name, fn),
+    register_unhandled: fn => unhandled = fn,
     unregister: name => registry.delete(name),
     OPEN: ws.OPEN,
     CONNECTING: ws.CONNECTING,
