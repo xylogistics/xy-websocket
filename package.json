@@ -1,6 +1,6 @@
 {
   "name": "xy-websocket",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Simple protocol for awaitable rpc calls and events over a websocket connection",
   "type": "module",
   "main": "index.js",
