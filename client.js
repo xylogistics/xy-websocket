@@ -115,6 +115,14 @@ export default ({
     on: hub.on,
     off: hub.off,
     is_connected: () => socket != null && socket.readyState === Websocket.OPEN,
+    once_connected: fn => {
+      if (api.is_connected()) return fn()
+      const cb = () => {
+        api.off('connected', cb)
+        fn()
+      }
+      api.on('connected', cb)
+    },
     send: (e, p) => {
       if (!api.is_connected()) throw new NotConnected()
       socket.send(JSON.stringify({ e: `${event_prefix}${e}`, p }))
