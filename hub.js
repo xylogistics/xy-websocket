@@ -5,8 +5,8 @@ const Hub = initial => {
 
   const emit = (e, ...args) => {
     if (listeners[e] == null)
-      return Promise.all(unhandled.map(fn => fn(e, ...args)))
-    return Promise.all(listeners[e].map(fn => fn(...args)))
+      return Promise.all(unhandled.slice().map(fn => fn(e, ...args)))
+    return Promise.all(listeners[e].slice().map(fn => fn(...args)))
   }
 
   const res = {
