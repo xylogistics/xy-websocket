@@ -111,11 +111,12 @@ export default ({
     hub.emit('close')
   })
 
-  httpServer.on('upgrade', (req, socket, head) => {
-    wsServer.handleUpgrade(req, socket, head, socket => {
-      wsServer.emit('connection', socket, req)
+  // Connect to an httpServer if provided
+  if (httpServer) httpServer.on('upgrade', (req, socket, head) => {
+      wsServer.handleUpgrade(req, socket, head, socket => {
+        wsServer.emit('connection', socket, req)
+      })
     })
-  })
 
   const api = {
     wsServer,
@@ -129,6 +130,12 @@ export default ({
       }
     },
     sockets: () => wsServer.clients,
+    // Or receive manually upgraded sockets
+    handleUpgrade: (req, socket, head) => {
+      wsServer.handleUpgrade(req, socket, head, socket => {
+        wsServer.emit('connection', socket, req)
+      })
+    },
     is_connected: socket => socket != null && socket.readyState === ws.OPEN,
     register: (name, fn) => registry.set(name, fn),
     register_unhandled: fn => unhandled = fn,
