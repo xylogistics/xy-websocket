@@ -1,6 +1,7 @@
 import short from 'short-uuid'
 import ws, { WebSocketServer } from 'ws'
 import { Hub } from './hub.js'
+import { NotConnected, CallWaitTimeout } from './exceptions.js'
 
 // TODO: create an general websocketexception class that is captured when thrown and re-created on the other side
 
