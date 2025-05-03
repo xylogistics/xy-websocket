@@ -3,8 +3,8 @@ import createClient from '../client.js'
 import { backOff } from 'exponential-backoff'
 
 export default ({ app_host_api, app_host_auth_token }) =>
-  async ({ app, hub }) => {
-    console.log(`Kiosk app host connecting to ${app_host_api}`)
+  async ({ app_name, app, hub }) => {
+    console.log(`${app_name} connecting to ${app_host_api}`)
     const app_host_ws_client = createClient({
       url: app_host_api.replace(/^http/, 'ws'),
       wsOptions: {
