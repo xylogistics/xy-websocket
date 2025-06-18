@@ -29,8 +29,7 @@ export default ({
     socket.on('pong', () => (socket.is_alive = true))
     socket.on('message', async data => {
       const { e: event, p: payload, id } = JSON.parse(data)
-      if (event.startsWith(event_prefix))
-        return hub.emit(event.slice(event_prefix.length), payload, socket)
+      if (event.startsWith(event_prefix)) return hub.emit(event.slice(event_prefix.length), payload, socket)
       if (event.startsWith(call_prefix)) {
         const fn_name = event.slice(call_prefix.length)
         if (!registry.has(fn_name)) {
@@ -38,25 +37,29 @@ export default ({
             try {
               const result = await unhandled(fn_name, payload, socket)
               return socket.send(JSON.stringify({ e: `${resolve_prefix}${fn_name}`, id, p: result }))
-            }
-            catch (e) {
-              if (e.ok !== false) console.error(e)
+            } catch (e) {
+              if (e.ok !== false) hub.emit('error', e)
               const p = e.ok === false ? e : { ok: false, status: 500, message: `${e.name}: ${e.message}` }
               return socket.send(JSON.stringify({ e: `${reject_prefix}${fn_name}`, id, p }))
             }
           }
-          return socket.send(JSON.stringify({ e: `${reject_prefix}${fn_name}`, id, p: {
-            ok: false,
-            status: 404,
-            message: `'${fn_name}' not found`
-          } }))
+          return socket.send(
+            JSON.stringify({
+              e: `${reject_prefix}${fn_name}`,
+              id,
+              p: {
+                ok: false,
+                status: 404,
+                message: `'${fn_name}' not found`
+              }
+            })
+          )
         }
         try {
           const result = await registry.get(fn_name)(payload, socket)
           return socket.send(JSON.stringify({ e: `${resolve_prefix}${fn_name}`, id, p: result }))
-        }
-        catch (e) {
-          if (e.ok !== false) console.error(e)
+        } catch (e) {
+          if (e.ok !== false) hub.emit('error', e)
           const p = e.ok === false ? e : { ok: false, status: 500, message: `${e.name}: ${e.message}` }
           return socket.send(JSON.stringify({ e: `${reject_prefix}${fn_name}`, id, p }))
         }
@@ -113,7 +116,8 @@ export default ({
   })
 
   // Connect to an httpServer if provided
-  if (httpServer) httpServer.on('upgrade', (req, socket, head) => {
+  if (httpServer)
+    httpServer.on('upgrade', (req, socket, head) => {
       wsServer.handleUpgrade(req, socket, head, socket => {
         wsServer.emit('connection', socket, req)
       })
@@ -139,7 +143,7 @@ export default ({
     },
     is_connected: socket => socket != null && socket.readyState === ws.OPEN,
     register: (name, fn) => registry.set(name, fn),
-    register_unhandled: fn => unhandled = fn,
+    register_unhandled: fn => (unhandled = fn),
     unregister: name => registry.delete(name),
     OPEN: ws.OPEN,
     CONNECTING: ws.CONNECTING,

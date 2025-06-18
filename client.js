@@ -30,22 +30,26 @@ export default ({
     open: e => hub.emit('connected', e),
     message: async e => {
       const { e: event, p: payload, id } = JSON.parse(e.data)
-      if (event.startsWith(event_prefix))
-        return hub.emit(event.slice(event_prefix.length), payload)
+      if (event.startsWith(event_prefix)) return hub.emit(event.slice(event_prefix.length), payload)
       if (event.startsWith(call_prefix)) {
         const fn_name = event.slice(call_prefix.length)
         if (!registry.has(fn_name))
-          return socket.send(JSON.stringify({ e: `${reject_prefix}${fn_name}`, id, p: {
-            ok: false,
-            status: 404,
-            message: `'${fn_name}' not found`
-          } }))
+          return socket.send(
+            JSON.stringify({
+              e: `${reject_prefix}${fn_name}`,
+              id,
+              p: {
+                ok: false,
+                status: 404,
+                message: `'${fn_name}' not found`
+              }
+            })
+          )
         try {
           const result = await registry.get(fn_name)(payload)
           return socket.send(JSON.stringify({ e: `${resolve_prefix}${fn_name}`, id, p: result }))
-        }
-        catch (e) {
-          if (e.ok !== false) console.error(e)
+        } catch (e) {
+          if (e.ok !== false) hub.emit('error', e)
           const p = e.ok === false ? e : { ok: false, status: 500, message: `${e.name}: ${e.message}` }
           return socket.send(JSON.stringify({ e: `${reject_prefix}${fn_name}`, id, p }))
         }
@@ -91,8 +95,7 @@ export default ({
         resolve = null
         reject = null
         newSocket.removeAllListeners()
-        for (const [event, listener] of Object.entries(listeners))
-          newSocket.addEventListener(event, listener)
+        for (const [event, listener] of Object.entries(listeners)) newSocket.addEventListener(event, listener)
         delay(() => hub.emit('connected', e))
         cb(newSocket)
       })
