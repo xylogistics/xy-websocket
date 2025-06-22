@@ -8,7 +8,7 @@ const delay = (fn, ms = 0) => setTimeout(fn, ms)
 
 export default ({
   url,
-  call_timeout = 2000,
+  call_timeout = 5000,
   protocol = {
     event_prefix: 'e.',
     call_prefix: 'c.',

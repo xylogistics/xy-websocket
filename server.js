@@ -7,7 +7,7 @@ import { NotConnected, CallWaitTimeout } from './exceptions.js'
 
 export default ({
   httpServer,
-  call_timeout = 2000,
+  call_timeout = 5000,
   protocol = {
     event_prefix: 'e.',
     call_prefix: 'c.',
@@ -27,6 +27,7 @@ export default ({
     socket.is_alive = true
     hub.emit('connected', socket, request)
     socket.on('pong', () => (socket.is_alive = true))
+    socket.on('error', e => hub.emit('error', e))
     socket.on('message', async data => {
       const { e: event, p: payload, id } = JSON.parse(data)
       if (event.startsWith(event_prefix)) return hub.emit(event.slice(event_prefix.length), payload, socket)
@@ -118,6 +119,7 @@ export default ({
   // Connect to an httpServer if provided
   if (httpServer)
     httpServer.on('upgrade', (req, socket, head) => {
+      socket.on('error', () => {})
       wsServer.handleUpgrade(req, socket, head, socket => {
         wsServer.emit('connection', socket, req)
       })
@@ -137,6 +139,7 @@ export default ({
     sockets: () => wsServer.clients,
     // Or receive manually upgraded sockets
     handleUpgrade: (req, socket, head) => {
+      socket.on('error', () => {})
       wsServer.handleUpgrade(req, socket, head, socket => {
         wsServer.emit('connection', socket, req)
       })
